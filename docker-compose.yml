@@ -1,0 +1,41 @@
+services:
+
+  # DynamoDBコンテナ
+  dynamodb-local:
+    image: amazon/dynamodb-local
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb"
+
+  # DynamoDBをブラウザから操作する管理コンテナ
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin
+    ports:
+      - "8001:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+
+  # LAMBDA関数コンテナ
+  lambda:
+    container_name: lambda
+    build:
+      context: .
+      dockerfile: Dockerfile
+    tty: true
+    ports:
+      - "9000:8080"
+    volumes:
+      - ./src:/var/task
+    environment:
+      # ローカルのDynamoDBコンテナを参照先に設定
+      ENDPOINT_URL: http://dynamodb-local:8000
+
+      # 認証情報は値は何でも良いが定義は必須
+      AWS_ACCESS_KEY_ID: "key"
+      AWS_SECRET_ACCESS_KEY: "key"
+      AWS_DEFAULT_REGION: "ap-northeast-1"
+
+networks:
+  default:
+    name: aws-local-network
